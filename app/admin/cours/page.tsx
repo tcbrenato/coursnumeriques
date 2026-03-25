@@ -25,12 +25,7 @@ export default function AdminCours() {
   // ... reste du code identique
   
   // Formulaire complet avec catégories
-  const [form, setForm] = useState({ 
-    title: '', 
-    description: '', 
-    category: '', 
-    is_published: false 
-  })
+
 
   const categories = [
     'Marketing Digital', 
