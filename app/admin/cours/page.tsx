@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function AdminCours() {
   const router = useRouter()
-  const [courses, setCourses] = useState([])
+  const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
