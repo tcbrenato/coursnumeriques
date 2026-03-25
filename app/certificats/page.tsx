@@ -50,7 +50,7 @@ export default function MesCertificats() {
       callback: '',
       data: cert.id,
       theme: '#22c55e',
-      key: 'VOTRE_CLE_PUBLIQUE_KKIAPAY', // N'oublie pas ta clé ici !
+      key: 'ecbb3953667eba4309668d63ded4c07da007127e', // N'oublie pas ta clé ici !
       sandbox: true 
     })
   }
