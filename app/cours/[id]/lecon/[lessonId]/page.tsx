@@ -12,10 +12,10 @@ import { supabase } from '@/lib/supabase'
 export default function LessonPage() {
   const { id, lessonId } = useParams()
   const router = useRouter()
-  const [lesson, setLesson] = useState(null)
-  const [course, setCourse] = useState(null)
-  const [modules, setModules] = useState([])
-  const [user, setUser] = useState(null)
+  const [lesson, setLesson] = useState<any>(null)
+  const [course, setCourse] = useState<any>(null)
+  const [modules, setModules] = useState<any[]>([])
+  const [user, setUser] = useState<any>(null)
   const [completed, setCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -59,7 +59,7 @@ export default function LessonPage() {
       setLoading(false)
     }
     fetchData()
-  }, [lessonId])
+  }, [lessonId, id, router])
 
   const markComplete = async () => {
     if (!user || completed) return
@@ -74,7 +74,7 @@ export default function LessonPage() {
     setMarking(false)
   }
 
-  const getYoutubeId = (url) => {
+  const getYoutubeId = (url: string) => {
     if (!url) return null
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
     return match ? match[1] : null
@@ -157,7 +157,7 @@ export default function LessonPage() {
                 <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Module {idx + 1} — {module.title}
                 </div>
-                {module.lessons?.map((l) => (
+                {module.lessons?.map((l: any) => (
                   <Link
                     key={l.id}
                     href={`/cours/${id}/lecon/${l.id}`}
@@ -232,10 +232,11 @@ export default function LessonPage() {
                 </div>
               </div>
               
+              <a 
                 href={lesson.pdf_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
                 style={{background: '#14532d'}}
               >
                 <Download size={16} /> Télécharger
