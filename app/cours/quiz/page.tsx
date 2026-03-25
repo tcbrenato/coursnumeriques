@@ -1,14 +1,15 @@
 // @ts-nocheck
 'use client'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
-  CheckCircle2, XCircle, ArrowRight, HelpCircle, 
-  Loader2, Award, RefreshCcw, Home
+  CheckCircle2, ArrowRight, 
+  Loader2, Award, RefreshCcw
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
-export default function QuizPage() {
+// On sépare la logique du Quiz dans un composant interne
+function QuizInterface() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const moduleId = searchParams.get('moduleId')
@@ -66,7 +67,6 @@ export default function QuizPage() {
     const percentage = Math.round((finalScore / questions.length) * 100)
     const passed = percentage >= (quiz?.passing_score || 80)
 
-    // Enregistrement de la tentative
     const userData = JSON.parse(localStorage.getItem('user_session') || '{}')
     if (userData.id) {
       await supabase.from('quiz_attempts').insert([{
@@ -76,11 +76,11 @@ export default function QuizPage() {
         passed: passed
       }])
 
-      // Si réussi, on peut aussi créer une entrée dans 'certificates' (à payer ensuite)
       if (passed) {
+        const { data: modData } = await supabase.from('modules').select('course_id').eq('id', moduleId).single()
         await supabase.from('certificates').upsert([{
           user_id: userData.id,
-          course_id: (await supabase.from('modules').select('course_id').eq('id', moduleId).single()).data.course_id,
+          course_id: modData.course_id,
           certificate_number: `CERT-${Math.random().toString(36).toUpperCase().substring(2, 10)}`,
           is_paid: false
         }], { onConflict: 'user_id,course_id' })
@@ -99,21 +99,19 @@ export default function QuizPage() {
     const isPassed = finalPercentage >= (quiz?.passing_score || 80)
 
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-6">
-        <div className="max-w-md w-full bg-[#1e293b] border border-[#334155] rounded-3xl p-10 text-center">
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-6 text-white">
+        <div className="max-w-md w-full bg-[#1e293b] border border-[#334155] rounded-3xl p-10 text-center shadow-2xl">
           <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isPassed ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
             {isPassed ? <Award size={40} /> : <RefreshCcw size={40} />}
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {isPassed ? 'Félicitations !' : 'Essaye encore !'}
-          </h2>
+          <h2 className="text-3xl font-bold mb-2">{isPassed ? 'Félicitations !' : 'Essaye encore !'}</h2>
           <p className="text-gray-400 mb-8">
-            Tu as obtenu un score de <span className="text-white font-bold">{finalPercentage}%</span>. 
-            {isPassed ? ' Ton certificat est en cours de préparation.' : ' Il te faut 80% pour valider ce module.'}
+            Score : <span className="text-white font-bold">{finalPercentage}%</span>. 
+            {isPassed ? ' Module validé !' : ' Il faut 80% pour réussir.'}
           </p>
           <div className="flex flex-col gap-3">
-            <button onClick={() => window.location.reload()} className="w-full py-4 bg-white text-black font-bold rounded-2xl">Recommencer</button>
-            <button onClick={() => router.push('/dashboard')} className="w-full py-4 border border-[#334155] text-white font-bold rounded-2xl">Retour au tableau de bord</button>
+            <button onClick={() => window.location.reload()} className="w-full py-4 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-500 transition-all">Recommencer</button>
+            <button onClick={() => router.push('/dashboard')} className="w-full py-4 border border-[#334155] text-white font-bold rounded-2xl hover:bg-slate-700 transition-all">Retour au tableau de bord</button>
           </div>
         </div>
       </div>
@@ -123,9 +121,8 @@ export default function QuizPage() {
   const currentQ = questions[currentStep]
 
   return (
-    <div className="min-h-screen bg-[#0f172a] py-12 px-6">
+    <div className="min-h-screen bg-[#0f172a] py-12 px-6 text-white">
       <div className="max-w-2xl mx-auto">
-        {/* Progress bar */}
         <div className="flex justify-between items-end mb-4">
           <span className="text-xs font-bold text-green-500 uppercase tracking-widest">Question {currentStep + 1} / {questions.length}</span>
           <span className="text-xs text-gray-500">{Math.round(((currentStep + 1) / questions.length) * 100)}% complété</span>
@@ -134,9 +131,7 @@ export default function QuizPage() {
           <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${((currentStep + 1) / questions.length) * 100}%` }} />
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-10 leading-tight">
-          {currentQ?.question_text}
-        </h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-10 leading-tight">{currentQ?.question_text}</h1>
 
         <div className="space-y-4 mb-12">
           {currentQ?.options.map((option, index) => (
@@ -166,5 +161,14 @@ export default function QuizPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+// Le composant principal qui exporte avec Suspense
+export default function QuizPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white italic">Chargement du quiz...</div>}>
+      <QuizInterface />
+    </Suspense>
   )
 }
