@@ -9,10 +9,20 @@ import {
 import { supabase } from '@/lib/supabase'
 
 export default function AdminCours() {
-  const [courses, setCourses] = useState([])
+  // On ajoute <any[]> et <any> pour éviter les erreurs de type pendant le build
+  const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
+  
+  const [form, setForm] = useState<any>({ 
+    title: '', 
+    description: '', 
+    category: '', 
+    is_published: false 
+  })
+  
+  // ... reste du code identique
   
   // Formulaire complet avec catégories
   const [form, setForm] = useState({ 
