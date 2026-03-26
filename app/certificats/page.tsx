@@ -13,80 +13,98 @@ interface Certificate {
   issued_at: string
   certificate_url?: string
   is_paid: boolean
+  courses?: { title: string }
+  certificate_number?: string
 }
 
 export default function MesCertificats() {
   const [certs, setCerts] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
   const [userData, setUserData] = useState(null)
-  const [isClient, setIsClient] = useState(false) // Barrière de sécurité
 
   useEffect(() => {
-    setIsClient(true) // On confirme qu'on est sur un navigateur
-    
-    const session = JSON.parse(localStorage.getItem('user_session') || '{}')
-    setUserData(session)
-    if (session.id) fetchMyCertificates(session.id)
+    const init = async () => {
+      try {
+        // Utiliser Supabase Auth au lieu de localStorage
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+          setLoading(false)
+          return
+        }
 
-    // Chargement dynamique de Kkiapay uniquement côté client
-    import('kkiapay').then(({ addKkiapayListener, removeKkiapayListener }) => {
-      const onSuccess = async (response) => {
-        const certId = response.data
-        await supabase.from('certificates').update({ is_paid: true }).eq('id', certId)
-        alert("Paiement réussi ! Votre certificat est maintenant disponible.")
-        fetchMyCertificates(session.id)
+        setUserData(user)
+        await fetchMyCertificates(user.id)
+      } catch (err) {
+        console.error(err)
+        setLoading(false)
       }
-      addKkiapayListener('success', onSuccess)
-      return () => removeKkiapayListener('success', onSuccess)
-    })
+    }
+    init()
   }, [])
 
   const fetchMyCertificates = async (userId) => {
-    if (!userId) return
-    const { data } = await supabase
-      .from('certificates')
-      .select('*, courses(title)')
-      .eq('user_id', userId)
-    
-    setCerts(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('certificates')
+        .select('*, courses(title)')
+        .eq('user_id', userId)
+      setCerts(data || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePayment = async (cert) => {
-    const { openKkiapayWidget } = await import('kkiapay')
-    openKkiapayWidget({
-      amount: 2000,
-      position: 'center',
-      callback: '',
-      data: cert.id,
-      theme: '#22c55e',
-      key: 'ecbb3953667eba4309668d63ded4c07da007127e', // N'oublie pas ta clé ici !
-      sandbox: true 
-    })
+    try {
+      const { openKkiapayWidget } = await import('kkiapay')
+      openKkiapayWidget({
+        amount: 2000,
+        position: 'center',
+        callback: '',
+        data: cert.id,
+        theme: '#22c55e',
+        key: 'ecbb3953667eba4309668d63ded4c07da007127e',
+        sandbox: true
+      })
+    } catch (err) {
+      alert("Erreur lors de l'ouverture du paiement.")
+    }
   }
 
   const generatePDF = async (cert) => {
-    const { jsPDF } = await import('jspdf') // Chargement dynamique de jsPDF
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    
-    // Design du certificat
-    doc.setFillColor(15, 23, 42).rect(0, 0, 297, 210, 'F')
-    doc.setDrawColor(20, 83, 45).setLineWidth(5).rect(10, 10, 277, 190)
-    doc.setTextColor(255, 255, 255).setFontSize(40).text('CERTIFICAT DE RÉUSSITE', 148, 60, { align: 'center' })
-    doc.setFontSize(20).setTextColor(148, 163, 184).text('Décerné à', 148, 85, { align: 'center' })
-    doc.setFontSize(30).setTextColor(34, 197, 94).text(userData?.full_name || 'Apprenant émérite', 148, 105, { align: 'center' })
-    doc.setFontSize(18).setTextColor(255, 255, 255).text(`Pour avoir complété avec succès la formation :`, 148, 130, { align: 'center' })
-    doc.setFontSize(22).text(cert.courses.title, 148, 145, { align: 'center' })
-    
-    doc.save(`Certificat-${cert.courses.title}.pdf`)
+    try {
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      doc.setFillColor(15, 23, 42).rect(0, 0, 297, 210, 'F')
+      doc.setDrawColor(20, 83, 45).setLineWidth(5).rect(10, 10, 277, 190)
+      doc.setTextColor(255, 255, 255).setFontSize(40).text('CERTIFICAT DE RÉUSSITE', 148, 60, { align: 'center' })
+      doc.setFontSize(20).setTextColor(148, 163, 184).text('Décerné à', 148, 85, { align: 'center' })
+      doc.setFontSize(30).setTextColor(34, 197, 94).text(userData?.user_metadata?.full_name || userData?.email || 'Apprenant', 148, 105, { align: 'center' })
+      doc.setFontSize(18).setTextColor(255, 255, 255).text('Pour avoir complété avec succès la formation :', 148, 130, { align: 'center' })
+      doc.setFontSize(22).text(cert.courses?.title || '', 148, 145, { align: 'center' })
+      doc.save(`Certificat-${cert.courses?.title || 'formation'}.pdf`)
+    } catch (err) {
+      alert("Erreur lors de la génération du PDF.")
+    }
   }
-
-  // Si on est en train de compiler (SSR), on ne rend rien pour éviter l'erreur HTMLElement
-  if (!isClient) return null
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
       <Loader2 className="animate-spin text-green-500" size={40} />
+    </div>
+  )
+
+  if (!userData) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white">
+      <div className="text-center">
+        <p className="mb-4 text-slate-400">Vous devez être connecté pour voir vos certificats.</p>
+        <Link href="/login" className="bg-green-600 px-6 py-3 rounded-xl font-bold hover:bg-green-500 transition-all">
+          Se connecter
+        </Link>
+      </div>
     </div>
   )
 
@@ -104,7 +122,9 @@ export default function MesCertificats() {
 
         {certs.length === 0 ? (
           <div className="bg-[#1e293b] p-10 rounded-3xl text-center border border-dashed border-slate-700">
+            <Award size={40} className="text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">Vous n'avez pas encore de certificats disponibles.</p>
+            <p className="text-slate-500 text-sm mt-2">Complétez une formation pour obtenir votre certificat.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
