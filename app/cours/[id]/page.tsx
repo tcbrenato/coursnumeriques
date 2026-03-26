@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 import {
   BookOpen, ArrowLeft, Play, FileText, Link as LinkIcon,
   ChevronDown, ChevronUp, CheckCircle, Lock, Clock,
@@ -9,14 +10,51 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
+interface Lesson {
+  id: string
+  title: string
+  type: string
+  content?: string
+  video_url?: string
+  pdf_url?: string
+  order_index: number
+}
+
+interface Module {
+  id: string
+  title: string
+  description?: string
+  order_index: number
+  lessons: Lesson[]
+}
+
+interface Course {
+  id: string
+  title: string
+  description: string
+  category: string
+  level: string
+  duration: number
+  instructor?: string
+  thumbnail_url?: string
+}
+
+interface Progress {
+  id: string
+  user_id: string
+  lesson_id: string
+  completed: boolean
+  completed_at?: string
+}
+
 export default function CourseDetail() {
   const { id } = useParams()
   const router = useRouter()
-  const [course, setCourse] = useState(null)
-  const [modules, setModules] = useState([])
-  const [user, setUser] = useState(null)
-  const [progress, setProgress] = useState([])
-  const [openModule, setOpenModule] = useState(null)
+  const [course, setCourse] = useState<Course | null>(null)
+  const [modules, setModules] = useState<Module[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [progress, setProgress] = useState<Progress[]>([])
+  const [openModule, setOpenModule] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,7 +92,7 @@ export default function CourseDetail() {
     fetchData()
   }, [id])
 
-  const isCompleted = (lessonId) => {
+  const isCompleted = (lessonId: string) => {
     return progress.some(p => p.lesson_id === lessonId && p.completed)
   }
 
