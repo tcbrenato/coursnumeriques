@@ -7,7 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import {
   BookOpen, ArrowLeft, ArrowRight, CheckCircle,
   Play, FileText, ExternalLink, ChevronRight,
-  Menu, X, Download
+  Menu, X, Download, Award
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -22,6 +22,7 @@ export default function LessonPage() {
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [marking, setMarking] = useState(false)
+  const [showCertificatBanner, setShowCertificatBanner] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,13 +69,58 @@ export default function LessonPage() {
   const markComplete = async () => {
     if (!user || completed) return
     setMarking(true)
+
+    // 1. Enregistrer la progression
     await supabase.from('progress').upsert({
       user_id: user.id,
       lesson_id: lessonId,
       completed: true,
       completed_at: new Date().toISOString()
     }, { onConflict: 'user_id,lesson_id' })
+
     setCompleted(true)
+
+    // 2. Vérifier si toutes les leçons du cours sont terminées
+    const allLessons = modules.flatMap(m => m.lessons || [])
+    const totalLessons = allLessons.length
+
+    if (totalLessons > 0) {
+      const { data: progressData } = await supabase
+        .from('progress')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .in('lesson_id', allLessons.map(l => l.id))
+
+      // +1 car la leçon actuelle vient d'être marquée
+      const completedCount = (progressData?.length || 0) + (completed ? 0 : 1)
+
+      if (completedCount >= totalLessons) {
+        // 3. Vérifier si un certificat existe déjà
+        const { data: existingCert } = await supabase
+          .from('certificates')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('course_id', id)
+          .single()
+
+        if (!existingCert) {
+          // 4. Créer le certificat automatiquement
+          const certNumber = `CERT-${Date.now()}-${user.id.slice(0, 6).toUpperCase()}`
+          await supabase.from('certificates').insert([{
+            user_id: user.id,
+            course_id: id,
+            is_paid: false,
+            certificate_number: certNumber,
+            issued_at: new Date().toISOString()
+          }])
+
+          // 5. Afficher la bannière de félicitations
+          setShowCertificatBanner(true)
+        }
+      }
+    }
+
     setMarking(false)
   }
 
@@ -84,20 +130,13 @@ export default function LessonPage() {
     return match ? match[1] : null
   }
 
-  const getAllLessons = () => {
-    return modules.flatMap(m => m.lessons || [])
-  }
-
-  const getCurrentIndex = () => {
-    return getAllLessons().findIndex(l => l.id === lessonId)
-  }
-
+  const getAllLessons = () => modules.flatMap(m => m.lessons || [])
+  const getCurrentIndex = () => getAllLessons().findIndex(l => l.id === lessonId)
   const getNextLesson = () => {
     const all = getAllLessons()
     const idx = getCurrentIndex()
     return idx < all.length - 1 ? all[idx + 1] : null
   }
-
   const getPrevLesson = () => {
     const all = getAllLessons()
     const idx = getCurrentIndex()
@@ -124,8 +163,39 @@ export default function LessonPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{background: '#f9fafb'}}>
 
+      {/* BANNIÈRE CERTIFICAT */}
+      {showCertificatBanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{background: 'rgba(0,0,0,0.7)'}}>
+          <div className="bg-white rounded-3xl p-10 max-w-md mx-4 text-center shadow-2xl">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{background: '#f0fdf4'}}>
+              <Award size={40} style={{color: '#14532d'}} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">🎉 Félicitations !</h2>
+            <p className="text-gray-600 mb-2">Vous avez complété la formation</p>
+            <p className="font-bold text-gray-900 mb-6">"{course?.title}"</p>
+            <p className="text-sm text-gray-500 mb-8">Votre certificat a été généré. Payez 2000 FCFA pour le télécharger.</p>
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/certificats"
+                className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2"
+                style={{background: '#14532d'}}
+              >
+                <Award size={18} /> Voir mon certificat
+              </Link>
+              <button
+                onClick={() => setShowCertificatBanner(false)}
+                className="w-full py-3 rounded-xl font-bold text-gray-600"
+                style={{background: '#f3f4f6'}}
+              >
+                Continuer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* NAVBAR */}
-      <nav className="bg-white sticky top-0 z-50 px-6 py-3 flex items-center gap-4" style={{borderBottom: '1px solid #e5e7eb'}}>
+      <nav className="bg-white sticky top-0 z-40 px-6 py-3 flex items-center gap-4" style={{borderBottom: '1px solid #e5e7eb'}}>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-9 h-9 rounded-lg flex items-center justify-center md:hidden" style={{background: '#f3f4f6'}}>
           {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
@@ -187,7 +257,6 @@ export default function LessonPage() {
         {/* MAIN CONTENT */}
         <main className="flex-1 max-w-4xl mx-auto px-6 py-8 w-full">
 
-          {/* LESSON HEADER */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-3">{lesson?.title}</h1>
             {completed && (
@@ -235,12 +304,11 @@ export default function LessonPage() {
                   <div className="text-sm text-gray-500">Document téléchargeable</div>
                 </div>
               </div>
-              
-              <a 
+              <a
                 href={lesson.pdf_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
                 style={{background: '#14532d'}}
               >
                 <Download size={16} /> Télécharger
@@ -266,7 +334,7 @@ export default function LessonPage() {
               {prevLesson ? (
                 <Link
                   href={`/cours/${id}/lecon/${prevLesson.id}`}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-colors"
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold"
                   style={{background: '#f3f4f6', color: '#374151'}}
                 >
                   <ArrowLeft size={16} /> Leçon précédente
@@ -276,7 +344,7 @@ export default function LessonPage() {
               {nextLesson && (
                 <Link
                   href={`/cours/${id}/lecon/${nextLesson.id}`}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition-opacity"
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white"
                   style={{background: '#14532d'}}
                 >
                   Leçon suivante <ArrowRight size={16} />
