@@ -118,9 +118,17 @@ export default function Dashboard() {
       <div style={{background: 'linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%)'}}>
         <div className="max-w-6xl mx-auto px-8 py-16 text-white">
           <h1 className="text-4xl font-bold mb-4">Bienvenue, {user?.user_metadata?.full_name || 'Apprenant'} !</h1>
-          <p style={{color: '#dcfce7'}} className="text-lg">
+          <p style={{color: '#dcfce7'}} className="text-lg mb-8">
             Continuez votre parcours d'apprentissage et développez vos compétences.
           </p>
+          <div className="flex gap-3 flex-wrap">
+            <Link href="/cours" className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap" style={{background: 'white', color: '#14532d'}}>
+              Voir les formations <ChevronRight size={16} />
+            </Link>
+            <Link href="/certificats" className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap" style={{background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)'}}>
+              Mes certificats <Award size={16} />
+            </Link>
+          </div>
         </div>
       </div>
 
