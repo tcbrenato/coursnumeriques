@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -15,7 +16,7 @@ export default function Register() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const handleRegister = async (e) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')

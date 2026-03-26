@@ -9,12 +9,43 @@ import {
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
+interface Lesson {
+  id: string
+  title: string
+  type: string
+  content?: string
+  video_url?: string
+  pdf_url?: string
+  order_index: number
+}
+
+interface Module {
+  id: string
+  title: string
+  description?: string
+  order_index: number
+  course_id: string
+  lessons: Lesson[]
+}
+
+interface Course {
+  id: string
+  title: string
+  description: string
+  category: string
+  level: string
+  duration: number
+  instructor?: string
+  thumbnail_url?: string
+  is_published: boolean
+}
+
 export default function DetailCours() {
   const { id } = useParams()
-  const [course, setCourse] = useState(null)
-  const [modules, setModules] = useState([])
+  const [course, setCourse] = useState<Course | null>(null)
+  const [modules, setModules] = useState<Module[]>([])
   const [loading, setLoading] = useState(true)
-  const [openModule, setOpenModule] = useState(null)
+  const [openModule, setOpenModule] = useState<string | null>(null)
 
   // Formulaire Module
   const [showModuleForm, setShowModuleForm] = useState(false)

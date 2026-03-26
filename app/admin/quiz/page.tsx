@@ -9,16 +9,42 @@ import {
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
+interface Course {
+  id: string
+  title: string
+  description: string
+  category: string
+  level: string
+  duration: number
+  instructor?: string
+  thumbnail_url?: string
+  is_published: boolean
+}
+
+interface Module {
+  id: string
+  title: string
+  description?: string
+  order_index: number
+  course_id: string
+}
+
+interface Question {
+  question_text: string
+  options: string[]
+  correct_option_index: number
+}
+
 export default function AdminQuiz() {
   const router = useRouter()
-  const [courses, setCourses] = useState([])
-  const [modules, setModules] = useState([])
+  const [courses, setCourses] = useState<Course[]>([])
+  const [modules, setModules] = useState<Module[]>([])
   const [selectedCourse, setSelectedCourse] = useState('')
   const [selectedModule, setSelectedModule] = useState('')
   const [loading, setLoading] = useState(true)
   
   // State du Quiz
-  const [questions, setQuestions] = useState([
+  const [questions, setQuestions] = useState<Question[]>([
     { question_text: '', options: ['', '', ''], correct_option_index: 0 }
   ])
   const [saving, setSaving] = useState(false)

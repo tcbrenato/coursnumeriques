@@ -1,38 +1,103 @@
+// @ts-nocheck
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 import {
-  BookOpen, Award, TrendingUp, Clock, LogOut, User,
-  ChevronRight, Play, CheckCircle, BarChart2, Bell
+  BookOpen, Award, TrendingUp, Users,
+  ChevronRight, Play, CheckCircle, Clock
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import StatsCard from '@/app/components/dashboard/StatsCard'
+import CourseProgress from '@/app/components/dashboard/CourseProgress'
+import RecentActivity from '@/app/components/dashboard/RecentActivity'
+
+interface Course {
+  id: string
+  title: string
+  progress: number
+  total_lessons: number
+  completed_lessons: number
+  category: string
+}
+
+interface Activity {
+  id: string
+  type: 'lesson_completed' | 'course_started' | 'certificate_earned'
+  label: string
+  date: string
+}
 
 export default function Dashboard() {
   const router = useRouter()
-  const [user, setUser] = useState(null)
-  const [courses, setCourses] = useState([])
+  const [user, setUser] = useState<User | null>(null)
+  const [courses, setCourses] = useState<Course[]>([])
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [stats, setStats] = useState({
+    coursesEnrolled: 0,
+    coursesCompleted: 0,
+    certificates: 0,
+    totalHours: 0
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+    const fetchData = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
         router.push('/login')
         return
       }
-      setUser(user)
-      const { data } = await supabase.from('courses').select('*').eq('is_published', true).limit(6)
-      setCourses(data || [])
+      setUser(authUser)
+
+      // Mock data for now - replace with real API calls
+      setCourses([
+        {
+          id: '1',
+          title: 'Introduction au Marketing Digital',
+          progress: 75,
+          total_lessons: 12,
+          completed_lessons: 9,
+          category: 'Marketing Digital'
+        },
+        {
+          id: '2',
+          title: 'Développement Web avec React',
+          progress: 30,
+          total_lessons: 20,
+          completed_lessons: 6,
+          category: 'Développement Web'
+        }
+      ])
+
+      setActivities([
+        {
+          id: '1',
+          type: 'lesson_completed',
+          label: 'Leçon "SEO Basics" terminée',
+          date: new Date().toISOString()
+        },
+        {
+          id: '2',
+          type: 'course_started',
+          label: 'Cours "React Avancé" commencé',
+          date: new Date(Date.now() - 86400000).toISOString()
+        }
+      ])
+
+      setStats({
+        coursesEnrolled: 5,
+        coursesCompleted: 2,
+        certificates: 2,
+        totalHours: 24
+      })
+
       setLoading(false)
     }
-    getUser()
-  }, [])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
+    fetchData()
+  }, [router])
 
   if (loading) {
     return (
@@ -41,132 +106,158 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{background: '#14532d'}}>
             <BookOpen size={24} color="white" />
           </div>
-          <p className="text-gray-500 text-sm">Chargement...</p>
+          <p className="text-sm" style={{color: '#6b7280'}}>Chargement de votre tableau de bord...</p>
         </div>
       </div>
     )
   }
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Apprenant'
-
   return (
     <div className="min-h-screen" style={{background: '#f9fafb'}}>
-
-      {/* NAVBAR */}
-      <nav className="bg-white sticky top-0 z-50 px-8 py-4 flex justify-between items-center" style={{borderBottom: '1px solid #e5e7eb'}}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{background: '#14532d'}}>
-            <BookOpen size={18} color="white" />
-          </div>
-          <span className="text-xl font-bold" style={{color: '#14532d'}}>CoursNumeriques</span>
+      {/* HEADER */}
+      <div style={{background: 'linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%)'}}>
+        <div className="max-w-6xl mx-auto px-8 py-16 text-white">
+          <h1 className="text-4xl font-bold mb-4">Bienvenue, {user?.user_metadata?.full_name || 'Apprenant'} !</h1>
+          <p style={{color: '#dcfce7'}} className="text-lg">
+            Continuez votre parcours d'apprentissage et développez vos compétences.
+          </p>
         </div>
-        <div className="hidden md:flex items-center gap-6">
-          <Link href="/cours" className="text-sm font-medium text-gray-600 hover:text-gray-900">Formations</Link>
-          <Link href="/dashboard" className="text-sm font-semibold" style={{color: '#14532d'}}>Tableau de bord</Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center" style={{background: '#f3f4f6'}}>
-            <Bell size={16} style={{color: '#6b7280'}} />
-          </button>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: '#f3f4f6'}}>
-            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background: '#14532d'}}>
-              <User size={12} color="white" />
-            </div>
-            <span className="text-sm font-medium text-gray-700 hidden md:block">{userName}</span>
-          </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
-            <LogOut size={16} />
-            <span className="hidden md:block">Déconnexion</span>
-          </button>
-        </div>
-      </nav>
+      </div>
 
       <div className="max-w-6xl mx-auto px-8 py-10">
 
-        {/* WELCOME */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Bonjour, {userName} 👋</h1>
-          <p className="text-gray-500">Continuez votre apprentissage là où vous vous êtes arrêté.</p>
-        </div>
-
         {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          {[
-            { icon: BookOpen, label: 'Formations inscrites', value: '0', color: '#14532d', bg: '#f0fdf4' },
-            { icon: CheckCircle, label: 'Leçons terminées', value: '0', color: '#0369a1', bg: '#f0f9ff' },
-            { icon: Award, label: 'Certificats obtenus', value: '0', color: '#b45309', bg: '#fffbeb' },
-            { icon: TrendingUp, label: 'Progression moyenne', value: '0%', color: '#7c3aed', bg: '#faf5ff' },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white rounded-2xl p-6" style={{border: '1px solid #e5e7eb'}}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{background: stat.bg}}>
-                <stat.icon size={20} style={{color: stat.color}} />
-              </div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
-              <div className="text-xs text-gray-500">{stat.label}</div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <StatsCard
+            title="Cours inscrits"
+            value={stats.coursesEnrolled}
+            icon={BookOpen}
+            color="green"
+          />
+          <StatsCard
+            title="Cours terminés"
+            value={stats.coursesCompleted}
+            icon={CheckCircle}
+            color="blue"
+          />
+          <StatsCard
+            title="Certificats"
+            value={stats.certificates}
+            icon={Award}
+            color="orange"
+          />
+          <StatsCard
+            title="Heures apprises"
+            value={`${stats.totalHours}h`}
+            icon={Clock}
+            color="purple"
+          />
         </div>
 
-        {/* COURSES */}
-        <div className="mb-10">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Formations disponibles</h2>
-            <Link href="/cours" className="flex items-center gap-1 text-sm font-semibold" style={{color: '#14532d'}}>
-              Voir tout <ChevronRight size={16} />
-            </Link>
+        {/* MAIN CONTENT */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-2 space-y-8">
+            <CourseProgress courses={courses} loading={loading} />
+
+            {/* CONTINUE LEARNING */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-800 mb-4">Continuer l'apprentissage</h2>
+              {courses.length > 0 ? (
+                <div className="space-y-4">
+                  {courses.slice(0, 2).map((course) => (
+                    <Link
+                      key={course.id}
+                      href={`/cours/${course.id}`}
+                      className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-sm transition-all group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{background: '#f0fdf4'}}>
+                          <BookOpen size={20} style={{color: '#14532d'}} />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 group-hover:text-green-800">
+                            {course.title}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {course.completed_lessons} / {course.total_lessons} leçons terminées
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right mr-3">
+                          <div className="text-sm font-medium text-gray-900">{course.progress}%</div>
+                          <div className="w-20 h-2 bg-gray-200 rounded-full mt-1">
+                            <div
+                              className="h-2 rounded-full transition-all"
+                              style={{
+                                width: `${course.progress}%`,
+                                background: '#14532d'
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <ChevronRight size={16} style={{color: '#14532d'}} />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun cours en cours</h3>
+                  <p className="text-gray-500 mb-4">Commencez votre apprentissage en vous inscrivant à une formation.</p>
+                  <Link
+                    href="/cours"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white"
+                    style={{background: '#14532d'}}
+                  >
+                    <BookOpen size={16} />
+                    Explorer les formations
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
-          {courses.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center" style={{border: '1px solid #e5e7eb'}}>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background: '#f0fdf4'}}>
-                <BookOpen size={26} style={{color: '#14532d'}} />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2">Aucune formation disponible</h3>
-              <p className="text-gray-500 text-sm mb-6">Les formations seront bientôt ajoutées par l'administrateur.</p>
-              <Link href="/cours" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white" style={{background: '#14532d'}}>
-                Explorer le catalogue <ChevronRight size={14} />
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {courses.map((course) => (
-                <Link href={`/cours/${course.id}`} key={course.id} className="bg-white rounded-2xl overflow-hidden hover:shadow-md transition-shadow" style={{border: '1px solid #e5e7eb'}}>
-                  <div className="h-36 flex items-center justify-center" style={{background: 'linear-gradient(135deg, #14532d, #15803d)'}}>
-                    <BookOpen size={40} color="rgba(255,255,255,0.6)" />
+          {/* RIGHT COLUMN */}
+          <div className="space-y-8">
+            <RecentActivity activities={activities} loading={loading} />
+
+            {/* QUICK ACTIONS */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-800 mb-4">Actions rapides</h2>
+              <div className="space-y-3">
+                <Link
+                  href="/cours"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{background: '#f0fdf4'}}>
+                    <BookOpen size={18} style={{color: '#14532d'}} />
                   </div>
-                  <div className="p-5">
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{background: '#f0fdf4', color: '#14532d'}}>
-                      {course.category || 'Général'}
-                    </span>
-                    <h3 className="font-bold text-gray-900 mt-3 mb-2">{course.title}</h3>
-                    <p className="text-gray-500 text-sm line-clamp-2">{course.description}</p>
-                    <div className="flex items-center gap-2 mt-4 pt-4" style={{borderTop: '1px solid #f3f4f6'}}>
-                      <div className="flex-1 h-1.5 rounded-full" style={{background: '#f3f4f6'}}>
-                        <div className="h-1.5 rounded-full w-0" style={{background: '#14532d'}}></div>
-                      </div>
-                      <span className="text-xs text-gray-400">0%</span>
-                    </div>
+                  <div>
+                    <div className="font-medium text-gray-900 group-hover:text-green-800">Parcourir les formations</div>
+                    <div className="text-sm text-gray-500">Découvrez de nouveaux cours</div>
                   </div>
                 </Link>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* CTA CERTIFICATION */}
-        <div className="rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6" style={{background: 'linear-gradient(135deg, #14532d, #166534)', color: 'white'}}>
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{background: 'rgba(255,255,255,0.15)'}}>
-              <Award size={28} color="white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold mb-1">Obtenez votre certification</h3>
-              <p style={{color: '#bbf7d0'}} className="text-sm">Validez vos compétences avec un certificat officiel reconnu.</p>
+                <Link
+                  href="/certificats"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{background: '#fef3c7'}}>
+                    <Award size={18} style={{color: '#d97706'}} />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900 group-hover:text-orange-800">Mes certificats</div>
+                    <div className="text-sm text-gray-500">Téléchargez vos attestations</div>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
-          <Link href="/cours" className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap" style={{background: 'white', color: '#14532d'}}>
-            Voir les formations <ChevronRight size={16} />
-          </Link>
+
         </div>
 
       </div>

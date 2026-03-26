@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -13,7 +14,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')

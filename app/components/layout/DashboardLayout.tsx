@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 // On utilise ton client local au lieu de l'helper qui pose problème
 import { supabase } from '@/lib/supabase' 
 import {
@@ -21,17 +22,17 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router   = useRouter()
-  const [user, setUser]               = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { 
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) { 
         router.push('/login')
         return 
       }
-      setUser(user)
+      setUser(authUser)
     }
     getUser()
   }, [router]) // Ajout de router en dépendance pour être propre

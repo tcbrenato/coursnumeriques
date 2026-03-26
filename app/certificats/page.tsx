@@ -5,8 +5,18 @@ import { Award, Download, CreditCard, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
+interface Certificate {
+  id: string
+  user_id: string
+  course_id: string
+  course_title: string
+  issued_at: string
+  certificate_url?: string
+  is_paid: boolean
+}
+
 export default function MesCertificats() {
-  const [certs, setCerts] = useState([])
+  const [certs, setCerts] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
   const [userData, setUserData] = useState(null)
   const [isClient, setIsClient] = useState(false) // Barrière de sécurité

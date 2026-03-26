@@ -9,9 +9,21 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
+interface Certificate {
+  id: string
+  user_id: string
+  course_id: string
+  course_title: string
+  issued_at: string
+  certificate_url?: string
+  is_paid: boolean
+  users?: { full_name: string; email: string }
+  courses?: { title: string }
+}
+
 export default function AdminCertificats() {
   const router = useRouter()
-  const [certificates, setCertificates] = useState([])
+  const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 

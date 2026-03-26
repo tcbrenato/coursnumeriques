@@ -8,16 +8,31 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
+interface Question {
+  id: string
+  quiz_id: string
+  question_text: string
+  options: string[]
+  correct_option_index: number
+}
+
+interface Quiz {
+  id: string
+  module_id: string
+  title: string
+  passing_score: number
+}
+
 // On sépare la logique du Quiz dans un composant interne
 function QuizInterface() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const moduleId = searchParams.get('moduleId')
   
-  const [quiz, setQuiz] = useState(null)
-  const [questions, setQuestions] = useState([])
+  const [quiz, setQuiz] = useState<Quiz | null>(null)
+  const [questions, setQuestions] = useState<Question[]>([])
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedOption, setSelectedOption] = useState(null)
+  const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [score, setScore] = useState(0)
   const [isFinished, setIsFinished] = useState(false)
   const [loading, setLoading] = useState(true)

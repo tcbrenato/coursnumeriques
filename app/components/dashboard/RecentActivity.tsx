@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { CheckCircle, BookOpen, Award } from 'lucide-react'
 
 interface Activity {

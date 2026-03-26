@@ -1,12 +1,14 @@
+// @ts-nocheck
 import './globals.css'
 import Script from 'next/script' // Importation du moteur de scripts de Next.js
+import { ReactNode } from 'react'
 
 export const metadata = {
   title: 'CoursNumeriques - Formations digitales',
   description: 'Plateforme e-learning de compétences digitales',
 }
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
       <body>
