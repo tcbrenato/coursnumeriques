@@ -8,6 +8,14 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
+interface Course {
+  id: string
+  title: string
+  description?: string
+  category?: string
+  is_published: boolean
+}
+
 const categories = [
   { label: 'Tous', value: '' },
   { label: 'Développement Web', value: 'dev', icon: Monitor },
@@ -21,8 +29,8 @@ const categories = [
 ]
 
 export default function Cours() {
-  const [courses, setCourses] = useState([])
-  const [filtered, setFiltered] = useState([])
+  const [courses, setCourses] = useState<Course[]>([])
+  const [filtered, setFiltered] = useState<Course[]>([])
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('')
   const [loading, setLoading] = useState(true)
